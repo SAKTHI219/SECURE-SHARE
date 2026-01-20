@@ -121,6 +121,15 @@ export default function Dashboard() {
             </Button>
 
             <Button
+              onClick={() => navigate('/files')}
+              className="h-24 bg-secondary hover:bg-secondary/80 flex flex-col gap-2"
+              data-testid="dashboard-myfiles-button"
+            >
+              <Eye className="h-8 w-8" />
+              <span>My Files</span>
+            </Button>
+
+            <Button
               onClick={() => navigate('/share')}
               className="h-24 bg-secondary hover:bg-secondary/80 flex flex-col gap-2"
               data-testid="dashboard-share-button"
@@ -136,15 +145,6 @@ export default function Dashboard() {
             >
               <Activity className="h-8 w-8" />
               <span>View Logs</span>
-            </Button>
-
-            <Button
-              onClick={() => navigate('/settings')}
-              className="h-24 bg-secondary hover:bg-secondary/80 flex flex-col gap-2"
-              data-testid="dashboard-settings-button"
-            >
-              <Settings className="h-8 w-8" />
-              <span>Settings</span>
             </Button>
           </div>
         </div>
