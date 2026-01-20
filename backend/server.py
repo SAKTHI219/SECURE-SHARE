@@ -58,7 +58,6 @@ class User(BaseModel):
     id: str
     email: str
     name: str
-    phone: str
     created_at: datetime
 
 class FileUploadResponse(BaseModel):
