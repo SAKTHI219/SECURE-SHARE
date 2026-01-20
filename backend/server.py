@@ -38,8 +38,7 @@ ALGORITHM = "HS256"
 UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
-# Twilio & SendGrid
-twilio_client = Client(os.environ['TWILIO_ACCOUNT_SID'], os.environ['TWILIO_AUTH_TOKEN'])
+# SendGrid for Email
 sendgrid_client = SendGridAPIClient(os.environ['SENDGRID_API_KEY'])
 
 app = FastAPI()
