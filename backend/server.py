@@ -178,7 +178,7 @@ async def login(credentials: UserLogin):
 
 @api_router.get("/auth/me")
 async def get_me(current_user: dict = Depends(get_current_user)):
-    return {"id": current_user["id"], "email": current_user["email"], "name": current_user["name"], "phone": current_user["phone"]}
+    return {"id": current_user["id"], "email": current_user["email"], "name": current_user["name"]}
 
 @api_router.post("/files/upload", response_model=FileUploadResponse)
 async def upload_file(
