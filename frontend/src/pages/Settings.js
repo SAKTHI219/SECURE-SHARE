@@ -87,21 +87,8 @@ export default function Settings() {
                   className="bg-secondary border-border"
                   data-testid="settings-email-input"
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Phone className="h-4 w-4" />
-                  Phone Number
-                </Label>
-                <Input
-                  value={user?.phone || ''}
-                  readOnly
-                  className="bg-secondary border-border"
-                  data-testid="settings-phone-input"
-                />
                 <p className="text-sm text-muted-foreground">
-                  Alerts and verification codes will be sent to this number
+                  All alerts and notifications will be sent to this email
                 </p>
               </div>
 
@@ -110,8 +97,9 @@ export default function Settings() {
                 <ul className="space-y-1 text-sm">
                   <li>✓ End-to-end file encryption</li>
                   <li>✓ Deceptive file protection</li>
-                  <li>✓ SMS & Email alerts enabled</li>
+                  <li>✓ Email alerts enabled</li>
                   <li>✓ Access attempt logging</li>
+                  <li>✓ Download your encrypted files anytime</li>
                 </ul>
               </div>
             </div>
