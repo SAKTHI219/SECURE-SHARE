@@ -384,18 +384,47 @@ async def access_file(access_data: AccessFileRequest):
             media_type="application/octet-stream"
         )
     else:
-        # Wrong password - serve decoy file & alert owner
+        # Wrong password - serve decoy file & alert owner via email
         verification_code = f"{secrets.randbelow(900000) + 100000}"
         
-        # Send intrusion alert
-        alert_msg = f"⚠️ INTRUSION ALERT! Someone tried accessing '{file_doc['filename']}' with WRONG password. Verification code: {verification_code}"
-        email_content = f"<h2 style='color: #EF4444;'>Intrusion Detected</h2><p>Someone attempted to access your file <strong>'{file_doc['filename']}'</strong> with an incorrect password.</p><p><strong>Verification Code:</strong> <code style='font-size: 18px; background: #fee; padding: 5px 10px; border-radius: 4px;'>{verification_code}</code></p><p>Time: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</p><p>A decoy file was served to the attacker.</p><p>You can block this link from your dashboard's Access Logs page.</p>"
+        # Send intrusion alert via email
+        email_content = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #EF4444; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+                <h2 style="margin: 0;">🚨 INTRUSION ALERT - Unauthorized Access Attempt</h2>
+            </div>
+            <div style="background: #fff5f5; padding: 20px; border: 2px solid #FEE2E2; border-radius: 0 0 8px 8px;">
+                <p style="font-size: 16px; color: #991B1B; font-weight: bold;">Someone attempted to access your file with an INCORRECT password!</p>
+                
+                <div style="background: white; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #EF4444;">
+                    <p style="margin: 8px 0; color: #374151;"><strong>File:</strong> {file_doc['filename']}</p>
+                    <p style="margin: 8px 0; color: #374151;"><strong>Time:</strong> {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</p>
+                    <p style="margin: 8px 0; color: #374151;"><strong>Status:</strong> <span style="color: #EF4444; font-weight: bold;">⚠️ INTRUSION DETECTED</span></p>
+                </div>
+                
+                <div style="background: #FEE2E2; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                    <p style="margin: 0 0 10px 0; color: #991B1B; font-weight: bold;">Verification Code:</p>
+                    <p style="font-family: monospace; font-size: 24px; font-weight: bold; color: #DC2626; margin: 0; letter-spacing: 3px;">{verification_code}</p>
+                </div>
+                
+                <div style="background: #DBEAFE; padding: 15px; border-radius: 6px; border-left: 4px solid #3B82F6;">
+                    <p style="margin: 0; color: #1E40AF; font-size: 14px;"><strong>What happened?</strong> The attacker received a DECOY file (they think they succeeded, but got fake data). Your real file remains secure.</p>
+                </div>
+                
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #E5E7EB;">
+                    <p style="color: #6B7280; font-size: 14px; margin: 5px 0;"><strong>Action Required:</strong></p>
+                    <p style="color: #6B7280; font-size: 14px; margin: 5px 0;">• Log in to your SecureShare dashboard</p>
+                    <p style="color: #6B7280; font-size: 14px; margin: 5px 0;">• View Access Logs to see intrusion details</p>
+                    <p style="color: #6B7280; font-size: 14px; margin: 5px 0;">• Block the share link if needed</p>
+                </div>
+            </div>
+        </div>
+        """
         
-        # Send alerts (continue even if they fail)
-        sms_sent = await send_alert_sms(owner["phone"], alert_msg)
+        # Send email alert
         email_sent = await send_alert_email(
             owner["email"],
-            "🚨 Intrusion Alert - Unauthorized Access Attempt",
+            "🚨 INTRUSION ALERT - Unauthorized Access to Your File",
             email_content
         )
         
@@ -405,12 +434,11 @@ async def access_file(access_data: AccessFileRequest):
             {"$set": {
                 "owner_notified": True,
                 "verification_code": verification_code,
-                "sms_sent": sms_sent,
                 "email_sent": email_sent
             }}
         )
         
-        logging.warning(f"INTRUSION DETECTED: file={file_doc['filename']}, code={verification_code}, sms={sms_sent}, email={email_sent}")
+        logging.warning(f"INTRUSION DETECTED: file={file_doc['filename']}, code={verification_code}, email={email_sent}")
         
         # Serve decoy file (user thinks they got access)
         encryption_key = base64.b64decode(file_doc["encryption_key"])
