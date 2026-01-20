@@ -44,6 +44,10 @@ function App() {
             element={isAuthenticated ? <AccessLogs /> : <Navigate to="/login" />}
           />
           <Route
+            path="/files"
+            element={isAuthenticated ? <MyFiles /> : <Navigate to="/login" />}
+          />
+          <Route
             path="/settings"
             element={isAuthenticated ? <Settings /> : <Navigate to="/login" />}
           />
