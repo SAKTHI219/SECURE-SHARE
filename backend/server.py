@@ -48,7 +48,6 @@ api_router = APIRouter(prefix="/api")
 class UserRegister(BaseModel):
     email: EmailStr
     password: str
-    phone: str
     name: str
 
 class UserLogin(BaseModel):
