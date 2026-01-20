@@ -352,14 +352,28 @@ async def access_file(access_data: AccessFileRequest):
             {"$inc": {"downloads_count": 1}}
         )
         
-        # Optionally alert owner about successful access
+        # Alert owner about successful access
         alert_msg = f"✓ File '{file_doc['filename']}' accessed with CORRECT password"
-        await send_alert_sms(owner["phone"], alert_msg)
-        await send_alert_email(
+        email_content = f"<p>{alert_msg}</p><p>Time: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</p>"
+        
+        # Send alerts (continue even if they fail)
+        sms_sent = await send_alert_sms(owner["phone"], alert_msg)
+        email_sent = await send_alert_email(
             owner["email"],
             "File Access Alert - Authorized",
-            f"<p>{alert_msg}</p><p>Time: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</p>"
+            email_content
         )
+        
+        # Log alert status
+        await db.access_attempts.update_one(
+            {"id": attempt_id},
+            {"$set": {
+                "sms_sent": sms_sent,
+                "email_sent": email_sent
+            }}
+        )
+        
+        logging.info(f"Authorized access: file={file_doc['filename']}, sms={sms_sent}, email={email_sent}")
         
         # Decrypt and return real file
         encryption_key = base64.b64decode(file_doc["encryption_key"])
