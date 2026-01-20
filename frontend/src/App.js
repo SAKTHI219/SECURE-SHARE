@@ -9,6 +9,7 @@ import ShareManagement from './pages/ShareManagement';
 import AccessFile from './pages/AccessFile';
 import AccessLogs from './pages/AccessLogs';
 import Settings from './pages/Settings';
+import MyFiles from './pages/MyFiles';
 import '@/App.css';
 
 function App() {
