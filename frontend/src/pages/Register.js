@@ -80,19 +80,6 @@ export default function Register({ setAuth }) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone (with country code)</Label>
-              <Input
-                id="phone"
-                placeholder="+1234567890"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                required
-                data-testid="register-phone-input"
-                className="bg-secondary border-border"
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
