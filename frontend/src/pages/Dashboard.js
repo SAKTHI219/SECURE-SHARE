@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { ShieldCheck, Upload, Share2, Activity, Settings, LogOut, FileKey, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, Upload, Share2, Activity, Settings, LogOut, FileKey, AlertTriangle, Eye } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
