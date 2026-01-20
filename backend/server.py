@@ -332,28 +332,39 @@ async def access_file(access_data: AccessFileRequest):
             {"$inc": {"downloads_count": 1}}
         )
         
-        # Alert owner about successful access
+        # Alert owner about successful access via email
         alert_msg = f"✓ File '{file_doc['filename']}' accessed with CORRECT password"
-        email_content = f"<p>{alert_msg}</p><p>Time: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</p>"
+        email_content = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #10B981; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+                <h2 style="margin: 0;">✓ Authorized File Access</h2>
+            </div>
+            <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
+                <p style="font-size: 16px; color: #111827;">Your file <strong>'{file_doc['filename']}'</strong> was successfully accessed with the correct password.</p>
+                <div style="background: white; padding: 15px; border-radius: 6px; margin: 15px 0;">
+                    <p style="margin: 5px 0; color: #6b7280;"><strong>Time:</strong> {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</p>
+                    <p style="margin: 5px 0; color: #6b7280;"><strong>File Type Served:</strong> Real File</p>
+                    <p style="margin: 5px 0; color: #6b7280;"><strong>Status:</strong> <span style="color: #10B981;">Authorized ✓</span></p>
+                </div>
+                <p style="color: #6b7280; font-size: 14px;">This is a notification for successful file access. No action required.</p>
+            </div>
+        </div>
+        """
         
-        # Send alerts (continue even if they fail)
-        sms_sent = await send_alert_sms(owner["phone"], alert_msg)
+        # Send email alert
         email_sent = await send_alert_email(
             owner["email"],
-            "File Access Alert - Authorized",
+            "✓ File Access Alert - Authorized Access",
             email_content
         )
         
         # Log alert status
         await db.access_attempts.update_one(
             {"id": attempt_id},
-            {"$set": {
-                "sms_sent": sms_sent,
-                "email_sent": email_sent
-            }}
+            {"$set": {"email_sent": email_sent}}
         )
         
-        logging.info(f"Authorized access: file={file_doc['filename']}, sms={sms_sent}, email={email_sent}")
+        logging.info(f"Authorized access: file={file_doc['filename']}, email={email_sent}")
         
         # Decrypt and return real file
         encryption_key = base64.b64decode(file_doc["encryption_key"])
