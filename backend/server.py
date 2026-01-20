@@ -16,7 +16,6 @@ from jose import JWTError, jwt
 from cryptography.fernet import Fernet
 import base64
 import secrets
-from twilio.rest import Client
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 import json
