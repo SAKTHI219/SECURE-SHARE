@@ -14,7 +14,6 @@ export default function Register({ setAuth }) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    phone: '',
     password: '',
   });
   const [loading, setLoading] = useState(false);
