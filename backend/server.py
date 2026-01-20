@@ -138,13 +138,21 @@ def decrypt_file(encrypted_content: bytes, key: bytes) -> bytes:
 
 async def send_alert_sms(phone: str, message: str):
     try:
+        # Ensure phone number is in E.164 format
+        if not phone.startswith('+'):
+            # Assume Indian number if no country code
+            phone = '+91' + phone
+        
         twilio_client.messages.create(
             body=message,
             from_=os.environ['TWILIO_PHONE_NUMBER'],
             to=phone
         )
+        logging.info(f"SMS sent successfully to {phone}")
+        return True
     except Exception as e:
-        logging.error(f"SMS failed: {e}")
+        logging.error(f"SMS failed to {phone}: {e}")
+        return False
 
 async def send_alert_email(email: str, subject: str, content: str):
     try:
