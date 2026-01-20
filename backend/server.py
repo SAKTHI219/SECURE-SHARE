@@ -398,18 +398,28 @@ async def access_file(access_data: AccessFileRequest):
         
         # Send intrusion alert
         alert_msg = f"⚠️ INTRUSION ALERT! Someone tried accessing '{file_doc['filename']}' with WRONG password. Verification code: {verification_code}"
-        await send_alert_sms(owner["phone"], alert_msg)
-        await send_alert_email(
+        email_content = f"<h2 style='color: #EF4444;'>Intrusion Detected</h2><p>Someone attempted to access your file <strong>'{file_doc['filename']}'</strong> with an incorrect password.</p><p><strong>Verification Code:</strong> <code style='font-size: 18px; background: #fee; padding: 5px 10px; border-radius: 4px;'>{verification_code}</code></p><p>Time: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</p><p>A decoy file was served to the attacker.</p><p>You can block this link from your dashboard's Access Logs page.</p>"
+        
+        # Send alerts (continue even if they fail)
+        sms_sent = await send_alert_sms(owner["phone"], alert_msg)
+        email_sent = await send_alert_email(
             owner["email"],
             "🚨 Intrusion Alert - Unauthorized Access Attempt",
-            f"<h2 style='color: #EF4444;'>Intrusion Detected</h2><p>Someone attempted to access your file <strong>'{file_doc['filename']}'</strong> with an incorrect password.</p><p><strong>Verification Code:</strong> <code>{verification_code}</code></p><p>Time: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</p><p>A decoy file was served to the attacker.</p>"
+            email_content
         )
         
-        # Update attempt with verification code
+        # Update attempt with verification code and alert status
         await db.access_attempts.update_one(
             {"id": attempt_id},
-            {"$set": {"owner_notified": True, "verification_code": verification_code}}
+            {"$set": {
+                "owner_notified": True,
+                "verification_code": verification_code,
+                "sms_sent": sms_sent,
+                "email_sent": email_sent
+            }}
         )
+        
+        logging.warning(f"INTRUSION DETECTED: file={file_doc['filename']}, code={verification_code}, sms={sms_sent}, email={email_sent}")
         
         # Serve decoy file (user thinks they got access)
         encryption_key = base64.b64decode(file_doc["encryption_key"])
