@@ -162,9 +162,12 @@ async def send_alert_email(email: str, subject: str, content: str):
             subject=subject,
             html_content=content
         )
-        sendgrid_client.send(message)
+        response = sendgrid_client.send(message)
+        logging.info(f"Email sent successfully to {email}, status: {response.status_code}")
+        return True
     except Exception as e:
-        logging.error(f"Email failed: {e}")
+        logging.error(f"Email failed to {email}: {e}")
+        return False
 
 # Routes
 @api_router.post("/auth/register")
