@@ -442,6 +442,263 @@ async def get_share_links(current_user: dict = Depends(get_current_user)):
 
 @api_router.post("/access/file")
 async def access_file(access_data: AccessFileRequest):
+    """DEPRECATED - Use request-access-otp and verify-access-otp instead"""
+    raise HTTPException(status_code=400, detail="Please use OTP verification flow for file access")
+
+@api_router.post("/access/request-otp")
+async def request_file_access_otp(request: RequestFileAccessOTP):
+    """Request OTP from file owner for access"""
+    # Get share link
+    share_link = await db.share_links.find_one({"link_token": request.link_token})
+    if not share_link:
+        raise HTTPException(status_code=404, detail="Invalid link")
+    
+    # Check expiry
+    expiry = datetime.fromisoformat(share_link["expiry_date"])
+    if datetime.now(timezone.utc) > expiry:
+        raise HTTPException(status_code=403, detail="Link expired")
+    
+    # Check if link is active
+    if not share_link["is_active"]:
+        raise HTTPException(status_code=403, detail="Link disabled by owner")
+    
+    # Get file and owner info
+    file_doc = await db.files.find_one({"id": share_link["file_id"]})
+    if not file_doc:
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    owner = await db.users.find_one({"id": file_doc["user_id"]})
+    if not owner:
+        raise HTTPException(status_code=404, detail="Owner not found")
+    
+    # Generate OTP
+    otp = generate_otp()
+    expiry_time = datetime.now(timezone.utc) + timedelta(minutes=10)
+    
+    # Store OTP
+    otp_id = str(uuid.uuid4())
+    await db.file_access_otps.insert_one({
+        "id": otp_id,
+        "link_token": request.link_token,
+        "file_id": file_doc["id"],
+        "otp": otp,
+        "expiry": expiry_time.isoformat(),
+        "used": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    # Send OTP to owner
+    await send_otp_email(owner["email"], otp, "file_access")
+    
+    logging.info(f"File access OTP requested for file {file_doc['filename']}, sent to {owner['email']}")
+    
+    return {
+        "message": "OTP sent to file owner",
+        "owner_email_hint": f"{owner['email'][:3]}***@{owner['email'].split('@')[1]}",
+        "expires_in": 600  # 10 minutes
+    }
+
+@api_router.post("/access/verify-otp")
+async def verify_file_access_otp(access_data: VerifyFileAccessOTP):
+    """Verify OTP and provide file access"""
+    # Get share link
+    share_link = await db.share_links.find_one({"link_token": access_data.link_token})
+    if not share_link:
+        raise HTTPException(status_code=404, detail="Invalid link")
+    
+    # Verify OTP
+    otp_doc = await db.file_access_otps.find_one({
+        "link_token": access_data.link_token,
+        "otp": access_data.otp,
+        "used": False
+    })
+    
+    if not otp_doc:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+    
+    # Check OTP expiry
+    otp_expiry = datetime.fromisoformat(otp_doc["expiry"])
+    if datetime.now(timezone.utc) > otp_expiry:
+        raise HTTPException(status_code=400, detail="OTP expired. Please request a new one")
+    
+    # Check link expiry
+    link_expiry = datetime.fromisoformat(share_link["expiry_date"])
+    if datetime.now(timezone.utc) > link_expiry:
+        raise HTTPException(status_code=403, detail="Link expired")
+    
+    # Check download limit
+    if share_link["downloads_count"] >= share_link["download_limit"]:
+        raise HTTPException(status_code=403, detail="Download limit reached")
+    
+    if not share_link["is_active"]:
+        raise HTTPException(status_code=403, detail="Link disabled by owner")
+    
+    # Get file
+    file_doc = await db.files.find_one({"id": share_link["file_id"]})
+    if not file_doc:
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    # Get owner info
+    owner = await db.users.find_one({"id": file_doc["user_id"]})
+    
+    # Verify password
+    password_correct = verify_password(access_data.password, share_link["password_hash"])
+    
+    # Mark OTP as used
+    await db.file_access_otps.update_one(
+        {"id": otp_doc["id"]},
+        {"$set": {"used": True}}
+    )
+    
+    # Log access attempt
+    attempt_id = str(uuid.uuid4())
+    attempt_doc = {
+        "id": attempt_id,
+        "file_id": file_doc["id"],
+        "link_token": access_data.link_token,
+        "attempted_at": datetime.now(timezone.utc).isoformat(),
+        "ip_address": "unknown",
+        "password_correct": password_correct,
+        "file_type_served": "real" if password_correct else "decoy",
+        "owner_notified": False,
+        "otp_verified": True
+    }
+    await db.access_attempts.insert_one(attempt_doc)
+    
+    if password_correct:
+        # Correct password - serve real file
+        await db.share_links.update_one(
+            {"link_token": access_data.link_token},
+            {"$inc": {"downloads_count": 1}}
+        )
+        
+        # Alert owner about successful access via email
+        alert_msg = f"✓ File '{file_doc['filename']}' accessed with CORRECT password (OTP verified)"
+        email_content = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #10B981; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+                <h2 style="margin: 0;">✓ Authorized File Access (OTP Verified)</h2>
+            </div>
+            <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
+                <p style="font-size: 16px; color: #111827;">Your file <strong>'{file_doc['filename']}'</strong> was successfully accessed with the correct password after OTP verification.</p>
+                <div style="background: white; padding: 15px; border-radius: 6px; margin: 15px 0;">
+                    <p style="margin: 5px 0; color: #6b7280;"><strong>Time:</strong> {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</p>
+                    <p style="margin: 5px 0; color: #6b7280;"><strong>File Type Served:</strong> Real File</p>
+                    <p style="margin: 5px 0; color: #6b7280;"><strong>Status:</strong> <span style="color: #10B981;">Authorized ✓</span></p>
+                    <p style="margin: 5px 0; color: #6b7280;"><strong>OTP Verification:</strong> <span style="color: #10B981;">Passed ✓</span></p>
+                </div>
+                <p style="color: #6b7280; font-size: 14px;">This is a notification for successful file access. No action required.</p>
+            </div>
+        </div>
+        """
+        
+        # Send email alert
+        email_sent = await send_alert_email(
+            owner["email"],
+            "✓ File Access Alert - Authorized Access (OTP Verified)",
+            email_content
+        )
+        
+        # Update log with email status
+        await db.access_attempts.update_one(
+            {"id": attempt_id},
+            {"$set": {"email_sent": email_sent, "owner_notified": True}}
+        )
+        
+        logging.info(f"Authorized access with OTP: file={file_doc['filename']}, email={email_sent}")
+        
+        # Decrypt and return real file
+        encryption_key = base64.b64decode(file_doc["encryption_key"])
+        with open(file_doc["real_file_path"], "rb") as f:
+            encrypted_content = f.read()
+        
+        decrypted_content = decrypt_file(encrypted_content, encryption_key)
+        
+        # Save decrypted file temporarily
+        temp_path = UPLOAD_DIR / f"temp_{file_doc['id']}_real_otp.tmp"
+        with open(temp_path, "wb") as f:
+            f.write(decrypted_content)
+        
+        return FileResponse(
+            temp_path,
+            filename=file_doc["filename"],
+            media_type="application/octet-stream"
+        )
+    else:
+        # Wrong password - serve decoy file & alert owner via email
+        verification_code = generate_otp()
+        
+        # Send intrusion alert via email
+        email_content = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #EF4444; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+                <h2 style="margin: 0;">🚨 INTRUSION ALERT - Wrong Password Used (OTP Verified)</h2>
+            </div>
+            <div style="background: #fff5f5; padding: 20px; border: 2px solid #FEE2E2; border-radius: 0 0 8px 8px;">
+                <p style="font-size: 16px; color: #991B1B; font-weight: bold;">Someone accessed your file with OTP verification but INCORRECT password!</p>
+                
+                <div style="background: white; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #EF4444;">
+                    <p style="margin: 8px 0; color: #374151;"><strong>File:</strong> {file_doc['filename']}</p>
+                    <p style="margin: 8px 0; color: #374151;"><strong>Time:</strong> {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</p>
+                    <p style="margin: 8px 0; color: #374151;"><strong>Status:</strong> <span style="color: #EF4444; font-weight: bold;">⚠️ INTRUSION (Wrong Password)</span></p>
+                    <p style="margin: 8px 0; color: #374151;"><strong>OTP Verification:</strong> <span style="color: #10B981;">Passed ✓</span></p>
+                </div>
+                
+                <div style="background: #FEE2E2; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                    <p style="margin: 0 0 10px 0; color: #991B1B; font-weight: bold;">Verification Code:</p>
+                    <p style="font-family: monospace; font-size: 24px; font-weight: bold; color: #DC2626; margin: 0; letter-spacing: 3px;">{verification_code}</p>
+                </div>
+                
+                <div style="background: #DBEAFE; padding: 15px; border-radius: 6px; border-left: 4px solid #3B82F6;">
+                    <p style="margin: 0; color: #1E40AF; font-size: 14px;"><strong>What happened?</strong> The user verified OTP but used wrong password. They received a DECOY file (fake data). Your real file remains secure.</p>
+                </div>
+                
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #E5E7EB;">
+                    <p style="color: #6B7280; font-size: 14px; margin: 5px 0;"><strong>Action Required:</strong></p>
+                    <p style="color: #6B7280; font-size: 14px; margin: 5px 0;">• Log in to your SecureShare dashboard</p>
+                    <p style="color: #6B7280; font-size: 14px; margin: 5px 0;">• View Access Logs to see intrusion details</p>
+                    <p style="color: #6B7280; font-size: 14px; margin: 5px 0;">• Block the share link if needed</p>
+                </div>
+            </div>
+        </div>
+        """
+        
+        # Send email alert
+        email_sent = await send_alert_email(
+            owner["email"],
+            "🚨 INTRUSION ALERT - Wrong Password Used (OTP Verified)",
+            email_content
+        )
+        
+        # Update attempt with verification code and alert status
+        await db.access_attempts.update_one(
+            {"id": attempt_id},
+            {"$set": {
+                "owner_notified": True,
+                "verification_code": verification_code,
+                "email_sent": email_sent
+            }}
+        )
+        
+        logging.warning(f"INTRUSION with OTP verification: file={file_doc['filename']}, code={verification_code}, email={email_sent}")
+        
+        # Serve decoy file
+        encryption_key = base64.b64decode(file_doc["encryption_key"])
+        with open(file_doc["decoy_file_path"], "rb") as f:
+            encrypted_content = f.read()
+        
+        decrypted_content = decrypt_file(encrypted_content, encryption_key)
+        
+        # Save decrypted decoy file temporarily
+        temp_path = UPLOAD_DIR / f"temp_{file_doc['id']}_decoy_otp.tmp"
+        with open(temp_path, "wb") as f:
+            f.write(decrypted_content)
+        
+        return FileResponse(
+            temp_path,
+            filename=file_doc["decoy_filename"],
+            media_type="application/octet-stream"
+        )
     # Get share link
     share_link = await db.share_links.find_one({"link_token": access_data.link_token})
     if not share_link:
