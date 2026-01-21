@@ -122,7 +122,7 @@ export default function Dashboard() {
 
             <Button
               onClick={() => navigate('/files')}
-              className="h-24 bg-secondary hover:bg-secondary/80 flex flex-col gap-2"
+              className="h-24 bg-primary text-primary-foreground hover:bg-primary/90 flex flex-col gap-2"
               data-testid="dashboard-myfiles-button"
             >
               <Eye className="h-8 w-8" />
@@ -131,7 +131,7 @@ export default function Dashboard() {
 
             <Button
               onClick={() => navigate('/share')}
-              className="h-24 bg-secondary hover:bg-secondary/80 flex flex-col gap-2"
+              className="h-24 bg-primary text-primary-foreground hover:bg-primary/90 flex flex-col gap-2"
               data-testid="dashboard-share-button"
             >
               <Share2 className="h-8 w-8" />
@@ -140,7 +140,7 @@ export default function Dashboard() {
 
             <Button
               onClick={() => navigate('/logs')}
-              className="h-24 bg-secondary hover:bg-secondary/80 flex flex-col gap-2"
+              className="h-24 bg-primary text-primary-foreground hover:bg-primary/90 flex flex-col gap-2"
               data-testid="dashboard-logs-button"
             >
               <Activity className="h-8 w-8" />
