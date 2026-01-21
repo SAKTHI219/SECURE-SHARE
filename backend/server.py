@@ -94,6 +94,22 @@ class OwnerAction(BaseModel):
     attempt_id: str
     action: str
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    otp: str
+    new_password: str
+
+class RequestFileAccessOTP(BaseModel):
+    link_token: str
+
+class VerifyFileAccessOTP(BaseModel):
+    link_token: str
+    otp: str
+    password: str
+
 # Helper functions
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
