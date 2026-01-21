@@ -163,6 +163,63 @@ async def send_alert_email(email: str, subject: str, content: str):
         logging.error(f"Email failed to {email}: {e}")
         return False
 
+def generate_otp() -> str:
+    """Generate 6-digit OTP"""
+    return f"{secrets.randbelow(900000) + 100000}"
+
+async def send_otp_email(email: str, otp: str, purpose: str):
+    """Send OTP via email"""
+    if purpose == "password_reset":
+        subject = "🔐 Password Reset OTP - SecureShare"
+        content = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #10B981; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+                <h2 style="margin: 0;">🔐 Password Reset Request</h2>
+            </div>
+            <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
+                <p style="font-size: 16px; color: #111827;">You requested to reset your password.</p>
+                
+                <div style="background: white; padding: 20px; border-radius: 6px; margin: 20px 0; text-align: center;">
+                    <p style="margin: 0 0 10px 0; color: #6b7280; font-weight: bold;">Your OTP Code:</p>
+                    <p style="font-family: monospace; font-size: 32px; font-weight: bold; color: #10B981; margin: 10px 0; letter-spacing: 8px;">{otp}</p>
+                </div>
+                
+                <div style="background: #FEF3C7; padding: 15px; border-radius: 6px; border-left: 4px solid #F59E0B;">
+                    <p style="margin: 0; color: #92400E; font-size: 14px;"><strong>⚠️ Security Note:</strong> This OTP is valid for 10 minutes. Never share this code with anyone.</p>
+                </div>
+                
+                <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">If you didn't request this, please ignore this email.</p>
+            </div>
+        </div>
+        """
+    elif purpose == "file_access":
+        subject = "🔑 File Access OTP - SecureShare"
+        content = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #3B82F6; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+                <h2 style="margin: 0;">🔑 File Access Verification Required</h2>
+            </div>
+            <div style="background: #EFF6FF; padding: 20px; border: 2px solid #DBEAFE; border-radius: 0 0 8px 8px;">
+                <p style="font-size: 16px; color: #1E40AF; font-weight: bold;">Someone is requesting access to your file!</p>
+                
+                <p style="color: #374151;">Please share this OTP with the person you want to grant access to:</p>
+                
+                <div style="background: white; padding: 20px; border-radius: 6px; margin: 20px 0; text-align: center; border: 2px solid #3B82F6;">
+                    <p style="margin: 0 0 10px 0; color: #6b7280; font-weight: bold;">Verification OTP:</p>
+                    <p style="font-family: monospace; font-size: 32px; font-weight: bold; color: #3B82F6; margin: 10px 0; letter-spacing: 8px;">{otp}</p>
+                </div>
+                
+                <div style="background: #FEF3C7; padding: 15px; border-radius: 6px; border-left: 4px solid #F59E0B;">
+                    <p style="margin: 0; color: #92400E; font-size: 14px;"><strong>⚠️ Important:</strong> This OTP is valid for 10 minutes. Only share this with people you trust to access your file.</p>
+                </div>
+                
+                <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">You can also view and block this access attempt from your dashboard.</p>
+            </div>
+        </div>
+        """
+    
+    return await send_alert_email(email, subject, content)
+
 # Routes
 @api_router.post("/auth/register")
 async def register(user_data: UserRegister):
