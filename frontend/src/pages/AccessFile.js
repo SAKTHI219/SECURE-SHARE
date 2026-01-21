@@ -109,7 +109,7 @@ export default function AccessFile() {
             <div className="space-y-4" data-testid="step-request-otp">
               <div className="bg-primary/10 border border-primary rounded-lg p-4">
                 <p className="text-sm text-primary">
-                  <strong>Step 1:</strong> An OTP will be sent to the file owner's email. Please contact the owner to get the OTP code.
+                  <strong>Step 1:</strong> An OTP will be sent to the file owner&apos;s email. Please contact the owner to get the OTP code.
                 </p>
               </div>
 
