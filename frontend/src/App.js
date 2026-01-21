@@ -28,6 +28,8 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login setAuth={setIsAuthenticated} />} />
           <Route path="/register" element={<Register setAuth={setIsAuthenticated} />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/access/:token" element={<AccessFile />} />
           <Route
             path="/dashboard"
