@@ -15,6 +15,16 @@ code {
     font-family: 'JetBrains Mono', source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 
+/* Hide Emergent watermark */
+iframe[style*="position: fixed"],
+div[style*="Made with Emergent"],
+a[href*="emergent"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
 @layer base {
     :root {
         --background: 240 10% 3.9%;
