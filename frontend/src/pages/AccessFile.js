@@ -108,9 +108,13 @@ export default function AccessFile() {
           {step === 1 ? (
             <div className="space-y-4" data-testid="step-request-otp">
               <div className="bg-primary/10 border border-primary rounded-lg p-4">
-                <p className="text-sm text-primary">
-                  <strong>Step 1:</strong> An OTP will be sent to the file owner&apos;s email. Please contact the owner to get the OTP code.
-                </p>
+                <h3 className="font-semibold text-primary mb-2">📧 How it works:</h3>
+                <ol className="text-sm text-foreground space-y-2 ml-4">
+                  <li><strong>1.</strong> Click "Request Authorization" below</li>
+                  <li><strong>2.</strong> An OTP will be sent to the file owner's email</li>
+                  <li><strong>3.</strong> Ask the owner for the 6-digit OTP code</li>
+                  <li><strong>4.</strong> Enter the OTP and file password to access</li>
+                </ol>
               </div>
 
               <Button
@@ -120,14 +124,20 @@ export default function AccessFile() {
                 data-testid="request-otp-button"
               >
                 {loading ? (
-                  'Sending OTP to Owner...'
+                  'Sending Authorization Request...'
                 ) : (
                   <span className="flex items-center justify-center gap-2">
                     <Mail className="h-5 w-5" />
-                    Request OTP from Owner
+                    Request Authorization from Owner
                   </span>
                 )}
               </Button>
+
+              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <p className="text-sm text-blue-900 dark:text-blue-100">
+                  <strong>ℹ️ Note:</strong> The file owner will receive an email with an OTP code. This ensures secure access control.
+                </p>
+              </div>
             </div>
           ) : (
             <form onSubmit={handleAccessFile} className="space-y-4" data-testid="step-verify-access">
