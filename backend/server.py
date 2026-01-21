@@ -249,6 +249,70 @@ async def login(credentials: UserLogin):
     token = create_token({"sub": user["id"]})
     return {"token": token, "user": {"id": user["id"], "email": user["email"], "name": user["name"]}}
 
+@api_router.post("/auth/forgot-password")
+async def forgot_password(request: ForgotPasswordRequest):
+    """Send OTP for password reset"""
+    user = await db.users.find_one({"email": request.email})
+    if not user:
+        # Don't reveal if email exists or not for security
+        return {"message": "If the email exists, an OTP has been sent"}
+    
+    # Generate OTP
+    otp = generate_otp()
+    expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
+    
+    # Store OTP in database
+    await db.password_reset_otps.insert_one({
+        "email": request.email,
+        "otp": otp,
+        "expiry": expiry.isoformat(),
+        "used": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    # Send OTP email
+    await send_otp_email(request.email, otp, "password_reset")
+    
+    logging.info(f"Password reset OTP sent to {request.email}")
+    return {"message": "If the email exists, an OTP has been sent"}
+
+@api_router.post("/auth/reset-password")
+async def reset_password(request: ResetPasswordRequest):
+    """Verify OTP and reset password"""
+    # Find valid OTP
+    otp_doc = await db.password_reset_otps.find_one({
+        "email": request.email,
+        "otp": request.otp,
+        "used": False
+    })
+    
+    if not otp_doc:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+    
+    # Check expiry
+    expiry = datetime.fromisoformat(otp_doc["expiry"])
+    if datetime.now(timezone.utc) > expiry:
+        raise HTTPException(status_code=400, detail="OTP expired")
+    
+    # Update password
+    user = await db.users.find_one({"email": request.email})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    await db.users.update_one(
+        {"email": request.email},
+        {"$set": {"password_hash": hash_password(request.new_password)}}
+    )
+    
+    # Mark OTP as used
+    await db.password_reset_otps.update_one(
+        {"_id": otp_doc["_id"]},
+        {"$set": {"used": True}}
+    )
+    
+    logging.info(f"Password reset successful for {request.email}")
+    return {"message": "Password reset successful"}
+
 @api_router.get("/auth/me")
 async def get_me(current_user: dict = Depends(get_current_user)):
     return {"id": current_user["id"], "email": current_user["email"], "name": current_user["name"]}
