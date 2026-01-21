@@ -143,14 +143,14 @@ export default function AccessFile() {
             <form onSubmit={handleAccessFile} className="space-y-4" data-testid="step-verify-access">
               <div className="bg-primary/10 border border-primary rounded-lg p-4">
                 <p className="text-sm text-primary">
-                  <strong>Step 2:</strong> OTP sent to {ownerEmailHint}. Please get the OTP from the file owner and enter it below along with the file password.
+                  <strong>✅ OTP Sent!</strong> Check {ownerEmailHint} for the authorization code. Enter the OTP and password below to access the file.
                 </p>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="otp" className="flex items-center gap-2">
                   <Key className="h-4 w-4" />
-                  OTP from Owner
+                  Authorization OTP (from Owner)
                 </Label>
                 <Input
                   id="otp"
