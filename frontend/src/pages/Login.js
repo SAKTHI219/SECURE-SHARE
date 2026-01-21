@@ -87,6 +87,12 @@ export default function Login({ setAuth }) {
             </Button>
           </form>
 
+          <div className="text-center">
+            <Link to="/forgot-password" className="text-sm text-primary hover:underline" data-testid="forgot-password-link">
+              Forgot Password?
+            </Link>
+          </div>
+
           <p className="text-center text-sm text-muted-foreground" data-testid="login-register-link">
             Don't have an account?{' '}
             <Link to="/register" className="text-primary hover:underline">
