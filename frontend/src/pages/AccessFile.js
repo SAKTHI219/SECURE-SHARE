@@ -173,12 +173,6 @@ export default function AccessFile() {
                 />
               </div>
 
-              <div className="bg-destructive/10 border border-destructive rounded-lg p-4">
-                <p className="text-sm text-destructive">
-                  <strong>⚠️ Warning:</strong> OTP expires in 10 minutes. If you enter wrong password, you&apos;ll receive a decoy file and the owner will be alerted.
-                </p>
-              </div>
-
               <Button
                 type="submit"
                 className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12"
